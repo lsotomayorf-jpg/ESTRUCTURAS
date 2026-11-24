@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<!-- La línea de arriba le dice al navegador: "esto es HTML moderno". -->
+<html lang="es">
+<head>
+  <!-- ========== CONFIGURACIÓN (no se ve en la página) ========== -->
+  <meta charset="UTF-8">                                                  <!-- para que se vean bien las tildes y la ñ -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">  <!-- para que se adapte a celulares -->
+  <title>AeroLista ✈ Vuelo {{ vuelo.codigo }}</title>                     <!-- texto de la pestaña; Jinja pone "AL-204" -->
+  <!-- El iconito de la pestaña: un avión dibujado con SVG (así no hace falta una imagen) -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✈</text></svg>">
+
+  <!-- Dos tipos de letra de Google: Inter (textos) y Fira Code (números de asiento) -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Nuestra hoja de estilos (la creamos en el paso 6).
+       url_for('static', filename=...) arma la dirección correcta hacia la carpeta static/ -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}">
+</head>
+<body>
+
+  <!-- ========== 1. ENCABEZADO: marca, ruta del vuelo y datos ========== -->
+  <header class="barra">
+    <div class="marca">
+      <span class="marca-logo">✈</span>
+      <div><b>AeroLista</b><small>Reservas con listas enlazadas</small></div>
+    </div>
+    <div class="ruta">
+      <!-- {{ vuelo.codigo_origen }} se reemplaza por "GYE" (viene de vuelo.py) -->
+      <div class="ruta-punto"><b>{{ vuelo.codigo_origen }}</b><small>{{ vuelo.origen }}</small></div>
+      <div class="ruta-linea"><span>✈</span></div>
+      <div class="ruta-punto"><b>{{ vuelo.codigo_destino }}</b><small>{{ vuelo.destino }}</small></div>
+    </div>
+    <div class="vuelo-datos">
+      <span>Vuelo <b>{{ vuelo.codigo }}</b></span>
+      <span>📅 {{ vuelo.fecha }}</span>
+      <span>🕖 {{ vuelo.hora }}</span>
+    </div>
+  </header>
+
+  <!-- ========== 2. CONTENIDO: el avión (izquierda) y el panel (derecha) ========== -->
+  <main class="contenedor">
+    <section class="zona-avion">
+      <!-- Tablero: 4 tarjetas con los números del vuelo -->
+      <div class="tablero">
+        <div class="dato"><small>Reservados</small><b id="dato-reservados">—</b></div>
+        <div class="dato"><small>Libres</small><b id="dato-libres">—</b></div>
+        <div class="dato"><small>Asientos</small><b id="dato-total">—</b></div>
+        <div class="dato">
+          <small>Ocupación</small>
+          <div class="ocupacion"><span class="luz" id="luz-ocupacion"></span><b id="dato-ocupacion">—</b></div>
+          <div class="barra-ocupacion"><span id="barra-ocupacion"></span></div>   <!-- barrita de progreso -->
+        </div>
+      </div>
+      <p class="aviso-pendiente" id="aviso-tablero" hidden></p>
+      <!-- Leyenda del semáforo y botones para elegir la vista -->
+      <div class="controles">
+        <ul class="leyenda">
+          <li><span class="muestra libre"></span>Libre</li>
+          <li><span class="muestra seleccionado"></span>Seleccionado</li>
+          <li><span class="muestra ocupado"></span>Reservado</li>
+          <li><span class="muestra encontrado"></span>Encontrado</li>
+        </ul>
+        <div class="vistas">
+          <!-- data-vista guarda qué vista activa cada botón -->
+          <button type="button" class="btn-vista activo" data-vista="3d">🧊 3D</button>
+          <button type="button" class="btn-vista" data-vista="2d">🗺️ 2D</button>
+        </div>
+      </div>
+      <!-- Deslizadores (input type="range"): solo se ven en 3D -->
+      <div class="ajustes-3d" id="ajustes-3d">
+        <label>Inclinación <input type="range" id="rango-inclinacion" min="0" max="65" value="42"></label>
+        <label>Giro <input type="range" id="rango-giro" min="-180" max="180" value="0"></label>
+      </div>
+      <!-- Aviso que usaremos en la Etapa E si Python no puede listar las reservas -->
+      <p class="aviso-pendiente" id="aviso-avion" hidden></p>
+
+      <!-- LA ESCENA: el "cielo" donde flota el avión -->
+      <div class="escena" id="escena">
+        <div class="avion vista-3d" id="avion">
+          <div class="sombra"></div>                 <!-- sombra en el suelo (se ve en 3D) -->
+          <div class="ala ala-izq"></div>            <!-- alas: rectángulos recortados -->
+          <div class="ala ala-der"></div>
+          <div class="motor motor-izq"></div>        <!-- motores debajo de las alas -->
+          <div class="motor motor-der"></div>
+          <div class="timon timon-izq"></div>        <!-- alas pequeñas de la cola -->
+          <div class="timon timon-der"></div>
+          <div class="fuselaje">                     <!-- el cuerpo del avión -->
+            <div class="nariz">
+              <div class="parabrisas"><span></span><span></span></div>   <!-- ventanas del piloto -->
+            </div>
+            <div class="cabina" id="cabina">
+              <!-- VACÍA: app.js crea aquí las 12 filas y los 68 asientos (paso 12) -->
+            </div>
+            <div class="cola"><span>AL</span></div>   <!-- la cola, con la marca -->
+          </div>
+        </div>
+      </div>
+    </section>
+    <!-- ========== PANEL DE OPERACIONES ========== -->
+    <aside class="panel">
+      <!-- Los 5 botones de las pestañas. data-pestana dice cuál abre cada uno -->
+      <nav class="pestanas">
+        <button type="button" class="pestana activa" data-pestana="reservar">➕ Reservar</button>
+        <button type="button" class="pestana" data-pestana="buscar">🔍 Buscar</button>
+        <button type="button" class="pestana" data-pestana="modificar">✏️ Modificar</button>
+        <button type="button" class="pestana" data-pestana="eliminar">🗑️ Eliminar</button>
+        <button type="button" class="pestana" data-pestana="listar">📋 Listar</button>
+      </nav>
+
+      <!-- El contenido de cada pestaña. El id es "pestana-" + el nombre -->
+      <section class="contenido-pestana activa" id="pestana-reservar">
+        <h2>Nueva reserva</h2>
+        <p class="ayuda">① Haz clic en un asiento <b class="txt-verde">verde</b> · ② llena los datos · ③ reserva.</p>
+        <form id="form-reservar" class="formulario" autocomplete="off">
+          <!-- El asiento elegido (lo escribe JavaScript al hacer clic en el avión) -->
+          <div class="asiento-elegido">
+            <span>Asiento</span>
+            <output id="reservar-asiento" class="chip-asiento vacio">—</output>
+            <small id="reservar-clase">Elige uno en el avión</small>
+          </div>
+          <!-- name="nombre" permite leerlo después como formulario.nombre.value -->
+          <label>Nombre
+            <input name="nombre" required minlength="2" maxlength="30" placeholder="Ej: Carla Mendoza">
+          </label>
+          <div class="dos-campos">
+            <label>Cédula   <!-- pattern="[0-9]{10}": exactamente 10 dígitos -->
+              <input name="cedula" required pattern="[0-9]{10}" maxlength="10" inputmode="numeric" placeholder="10 dígitos">
+            </label>
+            <label>Edad
+              <input name="edad" type="number" required min="0" max="120" placeholder="Ej: 25">
+            </label>
+          </div>
+          <button type="submit" class="btn btn-primario">✈ Reservar asiento</button>
+        </form>
+      </section>
+      <section class="contenido-pestana" id="pestana-buscar">
+        <h2>Buscar reserva</h2>
+        <form id="form-buscar" class="formulario" autocomplete="off">
+          <!-- Tres opciones (radio): solo se puede marcar UNA porque comparten name="tipo" -->
+          <div class="segmentado">
+            <label><input type="radio" name="tipo" value="numero" checked><span>N.º reserva</span></label>
+            <label><input type="radio" name="tipo" value="cedula"><span>Cédula</span></label>
+            <label><input type="radio" name="tipo" value="asiento"><span>Asiento</span></label>
+          </div>
+          <div class="fila-busqueda">
+            <input id="buscar-valor" required placeholder="Ej: 1002">
+            <button type="submit" class="btn btn-primario">🔍 Buscar</button>
+          </div>
+        </form>
+        <div id="resultado-buscar" class="resultado"></div>   <!-- aquí aparece el pase -->
+      </section>
+      <section class="contenido-pestana" id="pestana-modificar">
+        <h2>Modificar reserva</h2>
+        <!-- Primer formulario: qué reserva quieres modificar -->
+        <form id="form-cargar" class="formulario" autocomplete="off">
+          <div class="fila-busqueda">
+            <input id="modificar-numero" type="number" required placeholder="N.º de reserva, ej: 1009">
+            <button type="submit" class="btn btn-suave">Cargar</button>
+          </div>
+        </form>
+        <!-- Segundo formulario: los datos (empieza escondido con "hidden") -->
+        <form id="form-modificar" class="formulario" autocomplete="off" hidden>
+          <div class="asiento-elegido">
+            <span>Asiento</span>
+            <output id="modificar-asiento" class="chip-asiento">—</output>
+            <small>Clic en un asiento verde para cambiarlo</small>
+          </div>
+          <label>Nombre <input name="nombre" required minlength="2" maxlength="30"></label>
+          <div class="dos-campos">
+            <label>Cédula <input name="cedula" disabled></label>   <!-- disabled: no se puede cambiar -->
+            <label>Edad <input name="edad" type="number" required min="0" max="120"></label>
+          </div>
+          <div class="botones">
+            <button type="submit" class="btn btn-primario">💾 Guardar cambios</button>
+            <button type="button" class="btn btn-suave" id="btn-cancelar-edicion">Cancelar</button>
+          </div>
+        </form>
+      </section>
+      <section class="contenido-pestana" id="pestana-eliminar">
+        <h2>Cancelar una reserva</h2>
+        <p class="ayuda">El asiento vuelve a quedar <b class="txt-verde">libre</b>.</p>
+        <form id="form-eliminar" class="formulario" autocomplete="off">
+          <div class="fila-busqueda">
+            <input id="eliminar-numero" type="number" required placeholder="N.º de reserva, ej: 1004">
+            <button type="submit" class="btn btn-peligro">🗑️ Cancelar</button>
+          </div>
+        </form>
+        <!-- Ventana de confirmación. method="dialog" hace que los botones la cierren
+             y guarden su value ("si" o "no") en modal.returnValue -->
+        <dialog class="modal" id="modal">
+          <form method="dialog">
+            <h3 id="modal-titulo">¿Seguro?</h3>
+            <p id="modal-texto"></p>
+            <div class="botones">
+              <button value="no" class="btn btn-suave">No, volver</button>
+              <button value="si" class="btn btn-peligro">Sí, cancelar reserva</button>
+            </div>
+          </form>
+        </dialog>
+      </section>
+      <section class="contenido-pestana" id="pestana-listar">
+        <h2>Pasajeros del vuelo</h2>
+        <!-- Filtros: data-clase="" significa "todas" -->
+        <div class="filtros">
+          <button type="button" class="chip activo" data-clase="">Todos</button>
+          <button type="button" class="chip" data-clase="Ejecutiva">Ejecutiva</button>
+          <button type="button" class="chip" data-clase="Económica">Económica</button>
+        </div>
+        <div class="tabla-caja">
+          <table>
+            <thead><tr><th>#</th><th>N.º</th><th>Nombre</th><th>Edad</th><th>Asiento</th></tr></thead>
+            <tbody id="tabla-reservas"></tbody>   <!-- las filas las crea JavaScript -->
+          </table>
+        </div>
+      </section>
+
+      <!-- ========== PROGRESO DEL BACKEND ========== -->
+      <section class="progreso" id="progreso">
+        <div class="progreso-titulo">
+          <h3>🧪 Progreso del backend</h3>
+          <b id="progreso-cuenta">—</b>
+        </div>
+        <div class="progreso-barra"><span id="progreso-barra"></span></div>
+        <ul id="progreso-lista"></ul>   <!-- un renglón por método (lo llena progreso.js) -->
+        <div class="botones">
+          <button type="button" class="btn btn-suave" id="btn-revisar">↻ Revisar otra vez</button>
+          <button type="button" class="btn btn-suave" id="btn-restaurar">↺ Datos de ejemplo</button>
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <!-- ========== 3. EL TREN: la lista enlazada dibujada ========== -->
+  <section class="tren">
+    <div class="tren-titulo">
+      <h2>🚂 Tu lista enlazada en la memoria del servidor</h2>
+      <code id="tren-cantidad">nodos = —</code>
+    </div>
+    <div class="tren-vagones" id="tren-vagones"></div>   <!-- los vagones los crea tren.js -->
+  </section>
+
+  <!-- ========== 4. PIE DE PÁGINA ========== -->
+  <footer class="pie" id="pie">AeroLista · Proyecto de Estructuras de Datos · Flask + listas enlazadas</footer>
+
+  <!-- ========== 5. ELEMENTOS FLOTANTES ========== -->
+  <div class="toasts" id="toasts"></div>   <!-- aquí aparecen los mensajes flotantes -->
+  <div class="tooltip" id="tooltip" hidden></div>   <!-- el globo de ayuda (empieza escondido) -->
+
+  <!-- ========== 6. SCRIPTS (el orden importa: se cargan de arriba hacia abajo) ========== -->
+  <script src="{{ url_for('static', filename='js/utilidades.js') }}"></script>  <!-- atajos: $, crear... -->
+  <script src="{{ url_for('static', filename='js/api.js') }}"></script>         <!-- hablar con Flask -->
+  <script src="{{ url_for('static', filename='js/mensajes.js') }}"></script>    <!-- toasts y avisos -->
+  <script src="{{ url_for('static', filename='js/avion.js') }}"></script>       <!-- dibuja filas y asientos -->
+  <script src="{{ url_for('static', filename='js/clic.js') }}"></script>        <!-- clic en un asiento -->
+  <script src="{{ url_for('static', filename='js/vista3d.js') }}"></script>     <!-- vista 3D -->
+  <!-- datos-demo.js ya no se usa: ahora los datos vienen de Flask y de tu lista enlazada -->
+  <script src="{{ url_for('static', filename='js/semaforo.js') }}"></script>    <!-- 🚦 colores de los asientos -->
+  <script src="{{ url_for('static', filename='js/tooltip.js') }}"></script>     <!-- globo de ayuda -->
+  <script src="{{ url_for('static', filename='js/tablero.js') }}"></script>     <!-- números del vuelo -->
+  <script src="{{ url_for('static', filename='js/pestanas.js') }}"></script>    <!-- pestañas del panel -->
+  <script src="{{ url_for('static', filename='js/reservar.js') }}"></script>    <!-- ➕ reservar -->
+  <script src="{{ url_for('static', filename='js/modificar.js') }}"></script>   <!-- ✏️ modificar -->
+  <script src="{{ url_for('static', filename='js/eliminar.js') }}"></script>    <!-- 🗑️ eliminar -->
+  <script src="{{ url_for('static', filename='js/buscar.js') }}"></script>      <!-- 🔍 buscar -->
+  <script src="{{ url_for('static', filename='js/listar.js') }}"></script>      <!-- 📋 listar -->
+  <script src="{{ url_for('static', filename='js/tren.js') }}"></script>        <!-- 🚂 el tren -->
+  <script src="{{ url_for('static', filename='js/progreso.js') }}"></script>    <!-- 🧪 progreso -->
+  <!-- 📌 SCRIPTS · cada paso agrega su archivo .js ENCIMA de esta línea -->
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>   <!-- lo creamos en el paso 7 -->
+</body>
+</html>

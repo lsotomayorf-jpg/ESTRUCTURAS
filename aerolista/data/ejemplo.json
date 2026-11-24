@@ -1,0 +1,17 @@
+{
+  "siguiente_numero": 1013,
+  "reservas": [
+    { "numero": 1005, "nombre": "Diana",   "cedula": "0923456789", "edad": 22, "asiento": "3C" },
+    { "numero": 1002, "nombre": "Ana",     "cedula": "0912345678", "edad": 28, "asiento": "1A" },
+    { "numero": 1009, "nombre": "Luis",    "cedula": "0987654321", "edad": 35, "asiento": "7D" },
+    { "numero": 1004, "nombre": "Beto",    "cedula": "0934567890", "edad": 16, "asiento": "7E" },
+    { "numero": 1001, "nombre": "Elena",   "cedula": "0901234567", "edad": 41, "asiento": "2F" },
+    { "numero": 1008, "nombre": "Carla",   "cedula": "0945678901", "edad": 33, "asiento": "5A" },
+    { "numero": 1003, "nombre": "Jorge",   "cedula": "0956789012", "edad": 52, "asiento": "10B" },
+    { "numero": 1010, "nombre": "Sofía",   "cedula": "0967890123", "edad": 9,  "asiento": "10C" },
+    { "numero": 1007, "nombre": "Mateo",   "cedula": "0978901234", "edad": 27, "asiento": "12F" },
+    { "numero": 1006, "nombre": "Valeria", "cedula": "0989012345", "edad": 30, "asiento": "4D" },
+    { "numero": 1011, "nombre": "Pedro",   "cedula": "0990123456", "edad": 45, "asiento": "1D" },
+    { "numero": 1012, "nombre": "Lucía",   "cedula": "0911223344", "edad": 19, "asiento": "8B" }
+  ]
+}
